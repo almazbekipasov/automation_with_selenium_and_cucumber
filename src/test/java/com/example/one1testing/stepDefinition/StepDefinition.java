@@ -1,5 +1,6 @@
 package com.example.one1testing.stepDefinition;
 
+import com.example.one1testing.objects.LoginObjects;
 import com.example.one1testing.objects.RegisterObjects;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
@@ -12,6 +13,7 @@ import org.openqa.selenium.Point;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 public class StepDefinition {
@@ -19,6 +21,7 @@ public class StepDefinition {
     public WebDriver driver;
     public JavascriptExecutor js;
     public RegisterObjects register;
+    public LoginObjects login;
 
     public StepDefinition(RegisterObjects register) {
         this.register = register;
@@ -57,11 +60,18 @@ public class StepDefinition {
         register.getSingUpAndLoginButton().click();
 
     }
-    @Then("enters \"([^\"]*)\" and \"([^\"]*)\" address$")
-    public void enters_name_and_email_address(String name, String emailAddress) {
+    @Then("enters \"([^\"]*)\" name or password \"([^\"]*)\" and email \"([^\"]*)\"$")
+    public void enters_name_and_email_address(String loginOrRegister, String nameOrPassword, String emailAddress) {
 
-        register.getSignUpNameInput().sendKeys(name);
-        register.getSignUpEmailAddressInput().sendKeys(emailAddress);
+        if (loginOrRegister.equals("register")) {
+            register.getSignUpNameInput().sendKeys(nameOrPassword);
+            register.getSignUpEmailAddressInput().sendKeys(emailAddress);
+        } else if (loginOrRegister.equals("login")) {
+            login.getEmailAddressInput().sendKeys(emailAddress);
+            login.getPasswordInput().sendKeys(nameOrPassword);
+        }else {
+            throw new NoSuchElementException("Couldn't find such an element! Nor login, nor register");
+        }
 
     }
     @When("clicks on \"([^\"]*)\" button$")
@@ -77,7 +87,7 @@ public class StepDefinition {
             System.out.println("CHANGING EMAIL BECAUSE IT EXISTS");
             register.getSignUpEmailAddressInput().clear();
             register.getSignUpNameInput().clear();
-            enters_name_and_email_address("Chyngyz", "chyngy" + RandomStringUtils.randomNumeric(7) + "@gmail.com");
+            enters_name_and_email_address("register", "Chyngyz", "chyngy" + RandomStringUtils.randomNumeric(7) + "@gmail.com");
             clicks_on_button("");
         }
 
@@ -90,6 +100,7 @@ public class StepDefinition {
     public void fills_details_title_name_email_password_date_of_birth() throws InterruptedException {
         register.getTitleRadioButton().click();
         register.getPasswordInput().sendKeys("NewPassword");
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", register.getDayDropDown());
         register.getDayDropDown().click();
         Thread.sleep(500);
         register.getDayOption().click();
@@ -176,6 +187,60 @@ public class StepDefinition {
         Thread.sleep(1000);
 
         register.getContinueButton().click();
+
+    }
+
+    @Then("verifies that login title \"([^\"]*)\" is visible$")
+    public void verifies_that_login_title_is_visible(String expectedLoginFormTitle) {
+
+        login = new LoginObjects(driver);
+
+        String actualLoginFormTitle = login.getLoginFormTitle().getText();
+
+        Assert.assertEquals(actualLoginFormTitle, expectedLoginFormTitle);
+
+    }
+
+    @Then("clicks on login \"([^\"]*)\" button$")
+    public void clicks_on_login_button(String loginButton) {
+
+        login.getLoginButton().click();
+
+    }
+
+    @Then("user clicks on logout \"([^\"]*)\" button$")
+    public void user_clicks_on_logout_button(String logoutButton) {
+
+        login.getLogoutButton().click();
+
+    }
+
+    @Then("verify user is logged out")
+    public void verify_user_is_logged_out() {
+
+        boolean logoutButtonIsVisible = login.isLogoutButtonVisible();
+
+        Assert.assertFalse(logoutButtonIsVisible);
+
+    }
+
+    @Then("user can see credentials incorrect message")
+    public void user_can_see_credentials_incorrect_message() {
+
+        String expectedIncorrectMessage = "Your email or password is incorrect!";
+        String actualIncorrectMessage = login.getIncorrectCredentialsMessage().getText();
+
+        Assert.assertEquals(expectedIncorrectMessage, actualIncorrectMessage);
+
+    }
+
+    @Then("user can see email already exists message")
+    public void user_can_see_email_already_exists_message() {
+
+        String expectedMessage = "Email Address already exist!";
+        String actualMessage = register.emailAlreadyExistTitle();
+
+        Assert.assertEquals(expectedMessage, actualMessage);
 
     }
 
